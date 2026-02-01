@@ -1,13 +1,16 @@
 import 'package:flutter/material.dart';
-import 'package:practice_one/expensePageone.dart';
+import 'package:practice_one/expense_page_one.dart';
 import 'package:get/get.dart';
- // Make sure this matches your file name
+import 'package:practice_one/transaction_controller.dart';
+// Make sure this matches your file name
 
 class MyWidget extends StatelessWidget {
   const MyWidget({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final TransactionController controller = Get.put(TransactionController());
+
     // Shared Colors
     final Color backgroundColor = const Color(0xFF121212);
     final Color surfaceColor = const Color(0xFF1E1E1E);
@@ -30,9 +33,9 @@ class MyWidget extends StatelessWidget {
       floatingActionButton: FloatingActionButton(
         onPressed: () {
           // Using Get.to to navigate to your Money class
-          Get.to(() => const Money()); 
+          Get.to(() => const Money());
         },
-        backgroundColor: accentColor, 
+        backgroundColor: accentColor,
         foregroundColor: Colors.black, // Black icon on Amber looks sharp
         child: const Icon(Icons.add, size: 30),
       ),
@@ -54,25 +57,26 @@ class MyWidget extends StatelessWidget {
                     color: Colors.black.withOpacity(0.3),
                     blurRadius: 15,
                     offset: const Offset(0, 10),
-                  )
+                  ),
                 ],
               ),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
-                children: const [
+                children: [
                   Text(
                     "Available Balance",
                     style: TextStyle(fontSize: 18, color: Colors.grey),
                   ),
                   SizedBox(height: 10),
-                  Text(
-                    "Rs. 342,567",
+                  Obx(()=>Text(
+                    "Rs. ${controller.totalBalance.toStringAsFixed(0)}",
                     style: TextStyle(
                       fontSize: 36, // Slightly bigger
                       color: Colors.white,
                       fontWeight: FontWeight.bold,
                       letterSpacing: 1.0,
                     ),
+                  ),
                   ),
                 ],
               ),
@@ -97,30 +101,49 @@ class MyWidget extends StatelessWidget {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Container(
-                          width: 40, height: 40,
+                          width: 40,
+                          height: 40,
                           decoration: BoxDecoration(
                             color: const Color(0xFF00C853).withOpacity(0.2),
-                            shape: BoxShape.circle, // Circular icons look modern
+                            shape:
+                                BoxShape.circle, // Circular icons look modern
                           ),
-                          child: const Icon(Icons.arrow_downward, color: Color(0xFF00C853)),
+                          child: const Icon(
+                            Icons.arrow_downward,
+                            color: Color(0xFF00C853),
+                          ),
                         ),
                         const SizedBox(width: 15),
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           mainAxisAlignment: MainAxisAlignment.center,
-                          children: const [
-                            Text("Income", style: TextStyle(color: Colors.grey, fontSize: 12)),
+                          children: [
+                            Text(
+                              "Income",
+                              style: TextStyle(
+                                color: Colors.grey,
+                                fontSize: 12,
+                              ),
+                            ),
                             SizedBox(height: 4),
-                            Text("Rs 234k", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+                            Obx(()=>Text(
+                              "Rs ${controller.totalIncome.toStringAsFixed(0)}",
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                              ),
+                            ),
+                        )
                           ],
                         ),
                       ],
                     ),
                   ),
                 ),
-                
+
                 const SizedBox(width: 15),
-                
+
                 // Expense
                 Expanded(
                   child: Container(
@@ -133,21 +156,40 @@ class MyWidget extends StatelessWidget {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Container(
-                          width: 40, height: 40,
+                          width: 40,
+                          height: 40,
                           decoration: BoxDecoration(
                             color: const Color(0xFFFF5252).withOpacity(0.2),
                             shape: BoxShape.circle,
                           ),
-                          child: const Icon(Icons.arrow_upward, color: Color(0xFFFF5252)),
+                          child: const Icon(
+                            Icons.arrow_upward,
+                            color: Color(0xFFFF5252),
+                          ),
                         ),
                         const SizedBox(width: 15),
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           mainAxisAlignment: MainAxisAlignment.center,
-                          children: const [
-                            Text("Expense", style: TextStyle(color: Colors.grey, fontSize: 12)),
+                          children: [
+                            Text(
+                              "Expense",
+                              style: TextStyle(
+                                color: Colors.grey,
+                                fontSize: 12,
+                              ),
+                            ),
                             SizedBox(height: 4),
-                            Text("Rs 12k", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+                            Obx(()=>Text(
+                              "Rs ${controller.totalExpense.toStringAsFixed(0)}",
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                              ),
+                            ),
+                        ),
+                            
                           ],
                         ),
                       ],
@@ -176,9 +218,9 @@ class MyWidget extends StatelessWidget {
                 ),
                 // Optional: A "See All" button
                 TextButton(
-                  onPressed: (){}, 
-                  child: Text("See All", style: TextStyle(color: accentColor))
-                )
+                  onPressed: () {},
+                  child: Text("See All", style: TextStyle(color: accentColor)),
+                ),
               ],
             ),
           ),
@@ -187,74 +229,113 @@ class MyWidget extends StatelessWidget {
 
           // --- LIST VIEW ---
           Expanded(
-            child: ListView.builder(
-              itemCount: 8, // Reduced count for demo
-              physics: const BouncingScrollPhysics(), // Nice bounce effect
-              itemBuilder: (context, index) {
-                return Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 8.0),
-                  child: Container(
-                    height: 75,
+  child: Obx(() {
+    // 1. Handle Empty State
+    if (controller.transactions.isEmpty) {
+      return const Center(
+        child: Text(
+          "No Transactions yet",
+          style: TextStyle(color: Colors.grey),
+        ),
+      );
+    }
+
+    // 2. Return the List
+    return ListView.builder(
+      itemCount: controller.transactions.length,
+      physics: const BouncingScrollPhysics(),
+      itemBuilder: (context, index) {
+        // Reverse index to show newest first
+        int reverseIndex = controller.transactions.length - 1 - index;
+        var t = controller.transactions[reverseIndex];
+
+        return Padding(
+          padding: const EdgeInsets.symmetric(
+            horizontal: 20.0,
+            vertical: 8.0,
+          ),
+          child: Container(
+            height: 75,
+            decoration: BoxDecoration(
+              color: surfaceColor,
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(color: Colors.white10),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 15.0),
+              child: Row(
+                children: [
+                  // --- Icon Box ---
+                  Container(
+                    width: 50,
+                    height: 50,
                     decoration: BoxDecoration(
-                      color: surfaceColor,
-                      borderRadius: BorderRadius.circular(18),
-                      border: Border.all(color: Colors.white10),
+                      color: t['type'] == 'Income'
+                          ? Colors.green.withOpacity(0.1)
+                          : Colors.red.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(15),
                     ),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 15.0),
-                      child: Row(
-                        children: [
-                          // Icon Box
-                          Container(
-                            width: 50, height: 50,
-                            decoration: BoxDecoration(
-                              color: accentColor.withOpacity(0.1), // Amber tint
-                              borderRadius: BorderRadius.circular(15),
-                            ),
-                            child: Icon(Icons.shopping_bag, color: accentColor),
-                          ),
-                          const SizedBox(width: 15),
-                          
-                          // Text Info
-                          Expanded(
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: const [
-                                Text(
-                                  "Shopping",
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 16,
-                                    color: Colors.white,
-                                  ),
-                                ),
-                                SizedBox(height: 4),
-                                Text(
-                                  "Grocery for home",
-                                  style: TextStyle(fontSize: 12, color: Colors.grey),
-                                ),
-                              ],
-                            ),
-                          ),
-                          
-                          // Amount
-                          const Text(
-                            "- Rs 345",
-                            style: TextStyle(
-                              color: Colors.redAccent,
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ],
-                      ),
+                    child: Icon(
+                      t['type'] == 'Income'
+                          ? Icons.attach_money
+                          : Icons.money_off,
+                      color: t['type'] == 'Income' ? Colors.green : Colors.red,
                     ),
                   ),
-                );
-              },
+                  const SizedBox(width: 15),
+
+                  // --- Text Info (Title & Note) ---
+                  Expanded(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          t['title'], // <--- REAL DATA
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                            color: Colors.white,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          t['note'], // <--- REAL DATA
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  // --- Amount ---
+                  Text(
+                    "${t['type'] == 'Income' ? '+' : '-'} Rs ${t['amount']}", // <--- REAL DATA
+                    style: TextStyle(
+                      color:
+                          t['type'] == 'Income' ? Colors.green : Colors.red,
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
+        );
+      },
+    );
+  }
+  ),
+
+
+
+),
+
+
+
         ],
       ),
     );
